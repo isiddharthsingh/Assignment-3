@@ -18,6 +18,8 @@ phases:
       - zip -g ../deployment-package.zip search-photo.py
       - cd ..
       - aws s3 sync ./frontend/ "s3://b1staticweb"
+      - echo "Listing current directory contents:"
+      - ls -la
   post_build:
     commands:
       - echo "Updating index-photo lambda function"
