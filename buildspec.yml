@@ -11,7 +11,7 @@ phases:
     commands:
       - echo "Zipping deployment package..."
       - zip -r9 ../deployment-package.zip .
-      - zip -g ../deployment-package.zip index-photo
+      - zip -g ../deployment-package.zip index-photo.py
       - cd ..
   post_build:
     commands:
