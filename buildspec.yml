@@ -16,6 +16,8 @@ phases:
       - zip -r9 ../deployment-package.zip .
       - zip -g ../deployment-package.zip index-photo.py
       - zip -g ../deployment-package.zip search-photo.py
+      - echo "Listing current directory contents:"
+      - ls -la
       - cd ..
       - echo "Listing current directory contents:"
       - ls -la
