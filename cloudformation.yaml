@@ -1,0 +1,294 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Photo Album Web Application
+Resources:
+  FrontendBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: b1staticweb
+      WebsiteConfiguration:
+        IndexDocument: index.html
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 6d43dea4-ffa3-472d-b622-8acb24135912
+    DependsOn:
+      - PhotoAlbumAPI
+  B2Buckets:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: my-lambda-code-bucket
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 9d6dcd0b-68fa-49fd-892d-ca51eae09698
+    DependsOn:
+      - IndexPhotosRole
+  IndexPhotosRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: index-photos-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: IndexPhotosLambdaPolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 'rekognition:DetectLabels'
+                Resource:
+                  
+                  - 'arn:aws:rekognition:*:*:image/*'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 8cf23278-bb6d-41a7-8aa6-9eab72540484
+  SearchPhotosRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: search-photos-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: SearchPhotosLambdaPolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'es:Search'
+                  - 'lex:GetSession'
+                  - 'lex:RecognizeText'
+                Resource:
+                  - !Ref ElasticsearchDomain
+                  - 'arn:aws:lex:*:*:bot:PhotoSearchBot'
+                  - 'arn:aws:lex:*:*:intent:SearchIntent'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: c6bd6ff1-3d9b-4c17-ba76-4035989398ba
+  IndexPhotosLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Ref B2Buckets
+        S3Key: index-photos.zip
+      Description: Index uploaded photos with labels.
+      Handler: lambda_function.lambda_handler
+      Role: !Ref IndexPhotosRole
+      Runtime: python3.9
+      Timeout: 30
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 38187049-62bb-4c0c-ad38-cf5e18644774
+    DependsOn:
+      - IndexPhotosRole
+      - ElasticsearchDomain
+  SearchPhotosLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Ref B2Buckets
+        S3Key: search-photos.zip
+      Description: Search photos based on user queries.
+      Handler: lambda_function.lambda_handler
+      Role: !Ref SearchPhotosRole
+      Runtime: python3.9
+      Timeout: 30
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: c89b0307-aee3-4bc3-a469-f104b83e9bba
+    DependsOn:
+      - SearchPhotosRole
+      - ElasticsearchDomain
+      - SearchBot
+  ElasticsearchDomain:
+    Type: 'AWS::Elasticsearch::Domain'
+    Properties:
+      DomainName: photos
+      ElasticsearchVersion: 7.1
+      ClusterConfig:
+        InstanceType: t3.small.search
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 56906061-a195-45af-b2d2-33ecf8cac2ed
+  SearchBot:
+    Type: 'AWS::Lex::Bot'
+    Properties:
+      Name: PhotoSearchBot
+      Intents:
+        - SearchIntent
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: f4f654bc-8177-4990-8886-df10a6109e9c
+  PhotoAlbumAPI:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: AI Photo Search 2
+      EndpointConfiguration: REGIONAL
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: f6be7ac7-57f7-4eab-bc5c-ef296260ab10
+    DependsOn:
+      - B2Buckets
+      - SearchPhotosLambda
+
+Metadata:
+  'AWS::CloudFormation::Designer':
+    f6be7ac7-57f7-4eab-bc5c-ef296260ab10:
+      size:
+        width: 150
+        height: 150
+      position:
+        x: 40
+        'y': 50
+      z: 1
+      embeds: []
+      dependson:
+        - 9d6dcd0b-68fa-49fd-892d-ca51eae09698
+        - c89b0307-aee3-4bc3-a469-f104b83e9bba
+    f4f654bc-8177-4990-8886-df10a6109e9c:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 510
+        'y': 30
+      z: 1
+      embeds: []
+    56906061-a195-45af-b2d2-33ecf8cac2ed:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 340
+        'y': 130
+      z: 1
+      embeds: []
+    c6bd6ff1-3d9b-4c17-ba76-4035989398ba:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 540
+        'y': 210
+      z: 1
+      embeds: []
+    9d6dcd0b-68fa-49fd-892d-ca51eae09698:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 130
+        'y': 300
+      z: 1
+      embeds: []
+      dependson:
+        - 8cf23278-bb6d-41a7-8aa6-9eab72540484
+    c89b0307-aee3-4bc3-a469-f104b83e9bba:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 330
+        'y': 20
+      z: 1
+      embeds: []
+      dependson:
+        - c6bd6ff1-3d9b-4c17-ba76-4035989398ba
+        - 56906061-a195-45af-b2d2-33ecf8cac2ed
+        - f4f654bc-8177-4990-8886-df10a6109e9c
+    8cf23278-bb6d-41a7-8aa6-9eab72540484:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 340
+        'y': 330
+      z: 1
+      embeds: []
+    38187049-62bb-4c0c-ad38-cf5e18644774:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 330
+        'y': 230
+      z: 1
+      embeds: []
+      dependson:
+        - 8cf23278-bb6d-41a7-8aa6-9eab72540484
+        - 56906061-a195-45af-b2d2-33ecf8cac2ed
+    6d43dea4-ffa3-472d-b622-8acb24135912:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -60
+        'y': 100
+      z: 1
+      embeds: []
+      dependson:
+        - f6be7ac7-57f7-4eab-bc5c-ef296260ab10
+    64c12d85-a7d6-442e-9943-ccc994452ed0:
+      source:
+        id: 6d43dea4-ffa3-472d-b622-8acb24135912
+      target:
+        id: f6be7ac7-57f7-4eab-bc5c-ef296260ab10
+      z: 2
+    adca2480-8e26-4a08-a612-d2c3e95e064d:
+      source:
+        id: 38187049-62bb-4c0c-ad38-cf5e18644774
+      target:
+        id: 8cf23278-bb6d-41a7-8aa6-9eab72540484
+      z: 4
+    bda3701c-c6cf-42c2-8030-fb7f764377c9:
+      source:
+        id: c89b0307-aee3-4bc3-a469-f104b83e9bba
+      target:
+        id: c6bd6ff1-3d9b-4c17-ba76-4035989398ba
+      z: 5
+    1e242a90-6c2d-4a8a-99f4-7c488a5149bc:
+      source:
+        id: c89b0307-aee3-4bc3-a469-f104b83e9bba
+      target:
+        id: 56906061-a195-45af-b2d2-33ecf8cac2ed
+      z: 6
+    9e0ed85a-d5bd-4f12-aec7-d0ddc42dcfaf:
+      source:
+        id: 38187049-62bb-4c0c-ad38-cf5e18644774
+      target:
+        id: 56906061-a195-45af-b2d2-33ecf8cac2ed
+      z: 7
+    a04deb62-abfd-4247-b4aa-494cca3e19ce:
+      source:
+        id: c89b0307-aee3-4bc3-a469-f104b83e9bba
+      target:
+        id: f4f654bc-8177-4990-8886-df10a6109e9c
+      z: 8
+    aae1d0ad-7552-455f-a983-d5001f04585d:
+      source:
+        id: 9d6dcd0b-68fa-49fd-892d-ca51eae09698
+      target:
+        id: 8cf23278-bb6d-41a7-8aa6-9eab72540484
+      z: 9
+    ef5ae4ed-5130-4fe1-84ff-a6c0018b2870:
+      source:
+        id: f6be7ac7-57f7-4eab-bc5c-ef296260ab10
+      target:
+        id: 9d6dcd0b-68fa-49fd-892d-ca51eae09698
+      z: 10
+    49ef42cd-8bae-4117-84e9-bbb35d29e0d0:
+      source:
+        id: f6be7ac7-57f7-4eab-bc5c-ef296260ab10
+      target:
+        id: c89b0307-aee3-4bc3-a469-f104b83e9bba
+      z: 11
