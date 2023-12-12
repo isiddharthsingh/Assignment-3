@@ -18,10 +18,11 @@ phases:
       - zip -g ../deployment-package.zip search-photo.py
       - echo "Listing current directory contents:"
       - ls -la
+      - aws s3 sync ./frontend/ "s3://b1staticweb"
       - cd ..
       - echo "Listing current directory contents:"
       - ls -la
-      - aws s3 sync ./frontend/ "s3://b1staticweb"
+      
       
   post_build:
     commands:
